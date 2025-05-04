@@ -1,0 +1,8 @@
+pydantic
+firecrawl-py
+crewai
+crewai-tools
+python-dotenv
+langchain
+langdetect
+deep-translator
