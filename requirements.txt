@@ -6,3 +6,5 @@ python-dotenv
 langchain
 langdetect
 deep-translator
+fastapi
+uvicorn

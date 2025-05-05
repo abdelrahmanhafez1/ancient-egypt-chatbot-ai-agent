@@ -12,7 +12,10 @@ from datetime import datetime
 import json
 import os
 from dotenv import load_dotenv
-#LLM-API
+from fastapi import FastAPI
+from pydantic import BaseModel
+import uvicorn
+
 # LLM-API
 output_dir = "outputs"
 os.makedirs(output_dir, exist_ok=True)
@@ -220,5 +223,56 @@ def run_ancient_egypt_chatbot():
                     f.write("\n=================================================\n")
             break
 
-run_ancient_egypt_chatbot()
+# run_ancient_egypt_chatbot()
+
+app = FastAPI()
+
+class ChatRequest(BaseModel):
+    question: str
+
+@app.post("/chat")
+def chat_endpoint(req: ChatRequest):
+    user_input = req.question
+    user_lang = detect_language(user_input)
+
+    analyzer_crew = Crew(agents=[question_analyzer_agent], tasks=[question_analysis_task])
+    analyzer_crew.kickoff(inputs={"input": user_input})
+
+    with open(os.path.join(output_dir, "analyzed_question.json"), "r", encoding="utf-8") as f:
+        simplified_question = json.load(f)["simplified_question"]
+
+    search_crew = Crew(agents=[search_agent], tasks=[search_task])
+    search_crew.kickoff(inputs={"input": simplified_question})
+
+    storyteller_crew = Crew(agents=[storyteller_agent], tasks=[storytelling_task])
+    storyteller_crew.kickoff()
+
+    with open(os.path.join(output_dir, "final_response.json"), "r", encoding="utf-8") as f:
+        final_response = json.load(f)["response"]
+
+    translated_response = translate_text(final_response, "en", user_lang)
+
+    session_log.append({
+        "timestamp": datetime.now().isoformat(),
+        "user_question": user_input,
+        "simplified_question": simplified_question,
+        "final_answer": translated_response
+    })
+
+    with open(chat_history_file, "w", encoding="utf-8") as f:
+        for log in session_log:
+            f.write(f"Time: {log['timestamp']}\n")
+            f.write(f"User Question: {log['user_question']}\n")
+            f.write(f"Simplified Question: {log['simplified_question']}\n")
+            f.write(f"Bot Answer: {log['final_answer']}\n")
+            f.write("\n=================================================\n")
+
+    return {"response": translated_response}
+
+
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=10000)
+
 
