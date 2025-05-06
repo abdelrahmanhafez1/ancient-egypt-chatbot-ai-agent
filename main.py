@@ -182,6 +182,12 @@ def run_ancient_egypt_chatbot():
         user_input = input("You: ")
         last_input_time = datetime.now()
 
+        # Clear old output files
+        for file_name in ["analyzed_question.json", "search_results.json", "final_response.json"]:
+            path = os.path.join(output_dir, file_name)
+            if os.path.exists(path):
+                os.remove(path)
+
         user_lang = detect_language(user_input)
 
         if user_input.strip().lower() in ["exit", "quit", "no"]:
